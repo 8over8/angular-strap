@@ -22,12 +22,12 @@ angular.module('mgcrea.ngStrap.timepicker', ['mgcrea.ngStrap.helpers.dateParser'
       timeFormat: 'shortTime',
       timezone: null,
       modelTimeFormat: null,
-      autoclose: false,
+      autoclose: true,
       minTime: -Infinity,
       maxTime: +Infinity,
       length: 5,
       hourStep: 1,
-      minuteStep: 5,
+      minuteStep: 15,
       secondStep: 5,
       roundDisplay: false,
       iconUp: 'glyphicon glyphicon-chevron-up',
@@ -67,12 +67,12 @@ angular.module('mgcrea.ngStrap.timepicker', ['mgcrea.ngStrap.helpers.dateParser'
         var defaultDate = options.roundDisplay ? floorMinutes(new Date()) : new Date();
         var startDate = controller.$dateValue || defaultDate;
         var viewDate = {
-          hour: startDate.getHours(),
-          meridian: startDate.getHours() < 12,
-          minute: startDate.getMinutes(),
-          second: startDate.getSeconds(),
-          millisecond: startDate.getMilliseconds()
-        };
+		  hour: 0,
+		  meridian: startDate.getHours() < 12,
+		  minute: 0,
+		  second: 0,
+		  millisecond: 0
+	    };
 
         var format = $dateFormatter.getDatetimeFormat(options.timeFormat, lang);
 
@@ -83,6 +83,16 @@ angular.module('mgcrea.ngStrap.timepicker', ['mgcrea.ngStrap.helpers.dateParser'
         var showSeconds = $dateFormatter.showSeconds(format);
         var showAM = $dateFormatter.showAM(format);
 
+		// Initialize the element as a timepicker
+		$(element).wrap("<div class='calendar-control'></div>");
+		var iconHTML = $("<span/>").attr("class", "input-icon left").css("height", element.css('height')).html("<i class='fa fa-clock-o'></i>");
+		$(iconHTML).on('click', function () { element.focus(); });
+		$(element).before(iconHTML);
+		
+		element.attr("style", "border-top-left-radius:0; border-bottom-left-radius:0;");
+		element.attr("placeholder", format.toUpperCase()); // Placeholder
+		element.attr("size", format.toUpperCase().length + 1); // Resizing for placeholder
+		
         scope.$iconUp = options.iconUp;
         scope.$iconDown = options.iconDown;
 
@@ -118,7 +128,7 @@ angular.module('mgcrea.ngStrap.timepicker', ['mgcrea.ngStrap.helpers.dateParser'
 
         $timepicker.select = function (date, index, keep) {
           // console.warn('$timepicker.select', date, scope.$mode);
-          if (!controller.$dateValue || isNaN(controller.$dateValue.getTime())) controller.$dateValue = new Date(1970, 0, 1);
+          if (!controller.$dateValue || isNaN(controller.$dateValue.getTime())) controller.$dateValue = new Date();
           if (!angular.isDate(date)) date = new Date(date);
           if (index === 0) controller.$dateValue.setHours(date.getHours());
           else if (index === 1) controller.$dateValue.setMinutes(date.getMinutes());
@@ -128,6 +138,7 @@ angular.module('mgcrea.ngStrap.timepicker', ['mgcrea.ngStrap.helpers.dateParser'
           if (options.autoclose && !keep) {
             $timeout(function () {
               $timepicker.hide(true);
+			  $(":input:eq(" + ($(":input").index(element) + 1) + ")").focus();
             });
           }
         };
@@ -162,7 +173,9 @@ angular.module('mgcrea.ngStrap.timepicker', ['mgcrea.ngStrap.helpers.dateParser'
           var minutes = [];
           var minute;
           for (i = 0; i < options.length; i++) {
-            minute = new Date(1970, 0, 1, 0, viewDate.minute - (midIndex - i) * options.minuteStep);
+            var minuteStep = options.minuteStep;
+            var roundedMinute = Math.ceil(viewDate.minute / minuteStep) * minuteStep;
+            minute = new Date(1970, 0, 1, 0, roundedMinute - (midIndex - i) * minuteStep);
             minutes.push({
               date: minute,
               label: formatDate(minute, minutesFormat),
@@ -287,11 +300,13 @@ angular.module('mgcrea.ngStrap.timepicker', ['mgcrea.ngStrap.helpers.dateParser'
           // Close on enter
           if (evt.keyCode === 13) {
             $timepicker.hide(true);
+			var inputs = $(evt.target).closest('form').find(':focusable');
+            inputs.eq(inputs.index(this) + 1).focus();
             return;
           }
 
           // Navigate with keyboard
-          var newDate = new Date($timepicker.$date);
+          var newDate = $timepicker.$date == undefined ? new Date() : new Date($timepicker.$date);
           var hours = newDate.getHours();
           var hoursLength = formatDate(newDate, hoursFormat).length;
           var minutes = newDate.getMinutes();
@@ -421,7 +436,7 @@ angular.module('mgcrea.ngStrap.timepicker', ['mgcrea.ngStrap.helpers.dateParser'
   })
 
 
-  .directive('bsTimepicker', function ($window, $parse, $q, $dateFormatter, $dateParser, $timepicker) {
+  .directive('bsTimepicker', function ($window, $parse, $q, $dateFormatter, $dateParser, $timepicker, $filter) {
 
     var defaults = $timepicker.defaults;
     var isNative = /(ip[ao]d|iphone|android)/ig.test($window.navigator.userAgent);
@@ -452,7 +467,8 @@ angular.module('mgcrea.ngStrap.timepicker', ['mgcrea.ngStrap.helpers.dateParser'
         if (isNative && (options.useNative || defaults.useNative)) options.timeFormat = 'HH:mm';
         var timepicker = $timepicker(element, controller, options);
         options = timepicker.$options;
-
+		var hasSaveButtonId = element.attr("saveButtonId") != undefined && element.attr("saveButtonId") != null;
+        var hasSecondarySaveButtonId = element.attr("secondarySaveButtonId") != undefined && element.attr("secondarySaveButtonId") != null;
         var lang = options.lang;
         var formatDate = function (date, format, timezone) {
           return $dateFormatter.formatDate(date, format, lang, timezone);
@@ -492,6 +508,9 @@ angular.module('mgcrea.ngStrap.timepicker', ['mgcrea.ngStrap.helpers.dateParser'
         // Watch model for changes
         scope.$watch(attr.ngModel, function (newValue, oldValue) {
           // console.warn('scope.$watch(%s)', attr.ngModel, newValue, oldValue, controller.$dateValue);
+		  if (newValue !== oldValue) {
+			controller.$setDirty();
+		  }
           timepicker.update(controller.$dateValue);
         }, true);
 
@@ -508,6 +527,12 @@ angular.module('mgcrea.ngStrap.timepicker', ['mgcrea.ngStrap.helpers.dateParser'
             return;
           }
           controller.$dateValue = parsedTime;
+		  if (hasSaveButtonId || hasSecondarySaveButtonId) {
+			  if ($('.datePicker.ng-invalid').length < 1 && $('.timePicker.ng-invalid').length < 1) {
+				  $("[id$='" + element.attr("saveButtonId") + "']").removeAttr('disabled');
+				  $("[id$='" + element.attr("secondarySaveButtonId") + "']").removeAttr('disabled');
+			  }
+		  }
         }
 
         // viewValue -> $parsers -> modelValue
@@ -520,11 +545,21 @@ angular.module('mgcrea.ngStrap.timepicker', ['mgcrea.ngStrap.helpers.dateParser'
             // return null (not undefined) when input value is empty, so angularjs 1.3
             // ngModelController can go ahead and run validators, like ngRequired
             controller.$setValidity('date', true);
+			if (hasSaveButtonId || hasSecondarySaveButtonId) {
+			  if ($('.datePicker.ng-invalid').length < 1 && $('.timePicker.ng-invalid').length < 1) {
+				  $("[id$='" + element.attr("saveButtonId") + "']").removeAttr('disabled');
+				  $("[id$='" + element.attr("secondarySaveButtonId") + "']").removeAttr('disabled');
+			  }
+			}
             return null;
           }
           var parsedTime = angular.isDate(viewValue) ? viewValue : dateParser.parse(viewValue, controller.$dateValue);
           if (!parsedTime || isNaN(parsedTime.getTime())) {
             controller.$setValidity('date', false);
+			if (hasSaveButtonId || hasSecondarySaveButtonId) {
+				$("[id$='" + element.attr("saveButtonId") + "']").attr('disabled', 'disabled');
+			    $("[id$='" +element.attr("secondarySaveButtonId") + "']").attr('disabled', 'disabled');
+			}
             // Return undefined, causes ngModelController to
             // invalidate model value
             return undefined;
@@ -570,6 +605,20 @@ angular.module('mgcrea.ngStrap.timepicker', ['mgcrea.ngStrap.helpers.dateParser'
         // viewValue -> element
         controller.$render = function () {
           // console.warn('$render("%s"): viewValue=%o', element.attr('ng-model'), controller.$viewValue);
+		  
+		  // if we are on a .Net page get the time in milliseconds and convert to a javascript date object
+		  if (element.attr("dateInMilliseconds") !== undefined && element.attr("dateInMilliseconds") !== "") {
+			  var date = new Date(parseInt(element.attr("dateInMilliseconds")));
+			  controller.$dateValue = date;
+			  element.attr("dateInMilliseconds", "");
+		  }
+
+		  // if we are on a .net page set the hidden field for the datetime picker to the value of the calendar control
+		  // We want to use the local date with the timezone offset to ensure it's processed correctly in the .net control
+		  if (element.attr("hiddenId") !== undefined && controller.$dateValue && !isNaN(controller.$dateValue.getTime())) {
+			  var localDateWithTimezone = $filter('date')(controller.$dateValue, "yyyy-MM-ddTHH:mm:ss.sssZ");
+			  $("#" + element.attr("hiddenId")).val(localDateWithTimezone);
+		  }
           element.val(getTimeFormattedString());
         };
 

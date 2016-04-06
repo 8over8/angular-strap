@@ -386,7 +386,15 @@ angular.module('mgcrea.ngStrap.tooltip', ['mgcrea.ngStrap.core', 'mgcrea.ngStrap
             }
 
             tipElement.removeClass(originalPlacement).addClass(placement);
-          }
+          } else {
+			  // Ensure tooltip is displayed responsively to space available
+			  var tooltipHeight = $(tipElement).outerHeight(true);
+			  var elementHeight = $(element).outerHeight(true);
+			  var offset = element.offset();
+			  var spaceAboveElement = offset.top - $(window).scrollTop();
+			  var spaceBelowElement = $(window).height() - (spaceAboveElement + elementHeight);
+			  placement = (spaceBelowElement >= tooltipHeight ? "bottom-left" : "top-left");
+		  }
 
           // Get the tooltip's top and left coordinates to center it with this directive.
           var tipPosition = getCalculatedOffset(placement, elementPosition, tipWidth, tipHeight);
