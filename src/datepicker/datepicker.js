@@ -57,6 +57,9 @@ angular.module('mgcrea.ngStrap.datepicker', [
         if (options.startView) options.startView -= options.minView;
 
 		var expectedFormat = $locale.DATETIME_FORMATS.shortDate;
+		if ((expectedFormat.match(/y/g) || []).length == 1) {
+			expectedFormat += "yyy";
+		}
 		var hasSaveButtonId = element.attr("saveButtonId") != undefined && element.attr("saveButtonId") != null;
         var hasSecondarySaveButtonId = element.attr("secondarySaveButtonId") != undefined && element.attr("secondarySaveButtonId") != null;
 
