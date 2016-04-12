@@ -135,7 +135,7 @@ angular.module('mgcrea.ngStrap.timepicker', ['mgcrea.ngStrap.helpers.dateParser'
           else if (index === 2) controller.$dateValue.setSeconds(date.getSeconds());
           controller.$setViewValue(angular.copy(controller.$dateValue));
           controller.$render();
-          if (options.autoclose && !keep) {
+          if (options.autoclose && !keep && index === 1) {
             $timeout(function () {
               $timepicker.hide(true);
 			  $(":input:eq(" + ($(":input").index(element) + 1) + ")").focus();
