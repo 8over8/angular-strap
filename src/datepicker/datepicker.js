@@ -83,7 +83,7 @@ angular.module('mgcrea.ngStrap.datepicker', [
 			  dateString = element.val();
 		  }
 
-		  var date = stringToDate(dateString);
+		  var date = stringToDate(dateString, true);
 
 		  if (element.attr("hiddenId") !== undefined) {
 			  if (!angular.isDate(date) || isNaN(date.getTime()) || isNaN(controller.$dateValue)) {
