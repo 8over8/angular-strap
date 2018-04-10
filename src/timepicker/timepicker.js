@@ -113,7 +113,12 @@ angular.module('mgcrea.ngStrap.timepicker', ['mgcrea.ngStrap.helpers.dateParser'
         $timepicker.update = function (date) {
           // console.warn('$timepicker.update() newValue=%o', date);
           if (angular.isDate(date) && !isNaN(date.getTime())) {
+            // We don't allow users to set seconds/milliseconds, set to zero.
+            date.setSeconds(0);
+            date.setMilliseconds(0);
+
             $timepicker.$date = date;
+
             angular.extend(viewDate, {
               hour: date.getHours(),
               minute: date.getMinutes(),
